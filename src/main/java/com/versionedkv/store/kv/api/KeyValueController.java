@@ -1,7 +1,7 @@
 package com.versionedkv.store.kv.api;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.versionedkv.store.kv.service.KeyValueService;
+import com.versionedkv.store.kv.service.api.KeyValueService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

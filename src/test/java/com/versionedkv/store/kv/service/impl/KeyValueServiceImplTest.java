@@ -1,9 +1,10 @@
-package com.versionedkv.store.kv.service;
+package com.versionedkv.store.kv.service.impl;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.versionedkv.store.kv.repository.KeyValueEntity;
 import com.versionedkv.store.kv.repository.KeyValueRepository;
+import com.versionedkv.store.kv.service.api.KeyValueService;
 import com.versionedkv.store.shared.api.NotFoundException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,7 +21,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class KeyValueServiceTest {
+class KeyValueServiceImplTest {
 
     @Mock
     private KeyValueRepository repository;
@@ -29,7 +30,7 @@ class KeyValueServiceTest {
     private ObjectMapper objectMapper = new ObjectMapper();
 
     @InjectMocks
-    private KeyValueService service;
+    private KeyValueServiceImpl service;
 
     @Test
     void create_newKey_savesAndReturnsValue() throws Exception {

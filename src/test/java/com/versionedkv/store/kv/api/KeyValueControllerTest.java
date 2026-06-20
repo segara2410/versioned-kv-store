@@ -1,6 +1,6 @@
 package com.versionedkv.store.kv.api;
 
-import com.versionedkv.store.kv.service.KeyValueService;
+import com.versionedkv.store.kv.service.api.KeyValueService;
 import com.versionedkv.store.shared.api.GlobalExceptionHandler;
 import com.versionedkv.store.shared.api.NotFoundException;
 import com.fasterxml.jackson.databind.ObjectMapper;
