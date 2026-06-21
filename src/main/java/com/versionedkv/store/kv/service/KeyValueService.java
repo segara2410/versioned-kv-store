@@ -1,10 +1,10 @@
-package com.versionedkv.store.kv.service.api;
+package com.versionedkv.store.kv.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
 public interface KeyValueService {
 
-    String create(JsonNode body);
+    void create(JsonNode body);
 
     String getByKey(String key);
 }

@@ -1,9 +1,8 @@
 package com.versionedkv.store.kv.api;
 
-import com.versionedkv.store.kv.service.api.KeyValueService;
+import com.versionedkv.store.kv.service.KeyValueService;
 import com.versionedkv.store.shared.api.GlobalExceptionHandler;
 import com.versionedkv.store.shared.api.NotFoundException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -34,14 +33,14 @@ class KeyValueControllerTest {
     private KeyValueService service;
 
     @Test
-    void post_validRequest_returns200AndValue() throws Exception {
-        given(service.create(org.mockito.ArgumentMatchers.any())).willReturn("value1");
-
+    void post_validRequest_returns200() throws Exception {
         mvc.perform(post("/object")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"mykey\": \"value1\"}"))
                 .andExpect(status().isOk())
-                .andExpect(content().string("value1"));
+                .andExpect(jsonPath("$.code").value("SUCCESS"))
+                .andExpect(jsonPath("$.message").value("success"))
+                .andExpect(jsonPath("$.data").doesNotExist());
     }
 
     @Test
@@ -49,7 +48,10 @@ class KeyValueControllerTest {
         mvc.perform(post("/object")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("ERROR"))
+                .andExpect(jsonPath("$.message").value("Request body must contain at least one key-value pair"))
+                .andExpect(jsonPath("$.data").doesNotExist());
 
         verify(service, never()).create(org.mockito.ArgumentMatchers.any());
     }
@@ -60,16 +62,19 @@ class KeyValueControllerTest {
 
         mvc.perform(get("/object/mykey"))
                 .andExpect(status().isOk())
-                .andExpect(content().string("value1"));
+                .andExpect(jsonPath("$.code").value("SUCCESS"))
+                .andExpect(jsonPath("$.message").value("success"))
+                .andExpect(jsonPath("$.data").value("value1"));
     }
 
     @Test
-    void getByKey_missing_returns404ProblemDetail() throws Exception {
+    void getByKey_missing_returns404() throws Exception {
         given(service.getByKey("missing")).willThrow(new NotFoundException("Key not found: missing"));
 
         mvc.perform(get("/object/missing"))
                 .andExpect(status().isNotFound())
-                .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
-                .andExpect(jsonPath("$.detail").value("Key not found: missing"));
+                .andExpect(jsonPath("$.code").value("NOT_FOUND"))
+                .andExpect(jsonPath("$.message").value("Key not found: missing"))
+                .andExpect(jsonPath("$.data").doesNotExist());
     }
 }
