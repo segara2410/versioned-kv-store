@@ -7,3 +7,4 @@ HELP.md
 *.war
 *.ear
 .DS_Store
+.env
