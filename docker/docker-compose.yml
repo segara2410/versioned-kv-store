@@ -1,0 +1,40 @@
+name: versioned-kv-store
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: kvdb-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT}:5432"
+    volumes:
+      - kvdb_pgdata:/var/lib/postgresql/data
+    networks:
+      - kv-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  kv-store:
+    image: ghcr.io/segara2410/versioned-kv-store:latest
+    pull_policy: always
+    container_name: kv-store
+    env_file:
+      - ../.env
+    networks:
+      - kv-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  kvdb_pgdata:
+
+networks:
+  kv-network:
+    driver: bridge
