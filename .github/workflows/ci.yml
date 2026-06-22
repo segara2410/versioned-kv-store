@@ -20,14 +20,6 @@ jobs:
       - name: Build & test
         run: mvn -B verify
 
-      - name: Upload built JAR
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: versioned-kv-store-jar
-          path: target/*.jar
-          if-no-files-found: warn
-
   docker:
     runs-on: ubuntu-latest
     needs: build
