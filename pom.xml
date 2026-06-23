@@ -13,7 +13,7 @@
 
     <groupId>com.versionedkv.store</groupId>
     <artifactId>versioned-kv-store</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>0.0.1</version>
     <packaging>jar</packaging>
 
     <properties>

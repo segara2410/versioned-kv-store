@@ -1,16 +1,22 @@
 package com.versionedkv.store.kv.service.impl;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.versionedkv.store.kv.repository.entity.KeyValueEntity;
-import com.versionedkv.store.kv.repository.entity.KeyValueVersionEntity;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.versionedkv.store.kv.dto.KeyValueRecord;
 import com.versionedkv.store.kv.repository.KeyValueRepository;
 import com.versionedkv.store.kv.repository.KeyValueVersionRepository;
+import com.versionedkv.store.kv.repository.entity.KeyValueEntity;
+import com.versionedkv.store.kv.repository.entity.KeyValueVersionEntity;
 import com.versionedkv.store.kv.service.KeyValueService;
 import com.versionedkv.store.shared.api.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -22,6 +28,7 @@ public class KeyValueServiceImpl implements KeyValueService {
 
     private final KeyValueRepository repository;
     private final KeyValueVersionRepository versionRepository;
+    private final ObjectMapper objectMapper;
 
     @Transactional
     @Override
@@ -36,7 +43,15 @@ public class KeyValueServiceImpl implements KeyValueService {
         while (fields.hasNext()) {
             Map.Entry<String, JsonNode> entry = fields.next();
             keys.add(entry.getKey());
-            values.add(entry.getValue().asText());
+            if (entry.getValue().isTextual()) {
+                values.add(entry.getValue().asText());
+            } else {
+                try {
+                    values.add(objectMapper.writeValueAsString(entry.getValue()));
+                } catch (JsonProcessingException e) {
+                    throw new IllegalArgumentException("Failed to serialize value for key: " + entry.getKey());
+                }
+            }
         }
 
         repository.batchUpsert(keys, values);
@@ -47,11 +62,34 @@ public class KeyValueServiceImpl implements KeyValueService {
         versionRepository.saveAll(versions);
     }
 
-    @Transactional(readOnly = true)
     @Override
-    public String getByKey(String key) {
+    public JsonNode getByKey(String key) {
         KeyValueEntity entity = repository.findByKey(key)
                 .orElseThrow(() -> new NotFoundException("Key not found: " + key));
-        return entity.getValue();
+        return parseValue(entity.getValue());
+    }
+
+    @Override
+    public KeyValueRecord getByKeyAtTimestamp(String key, long timestamp) {
+        LocalDateTime dateTime = LocalDateTime.ofInstant(Instant.ofEpochSecond(timestamp), ZoneId.systemDefault());
+        KeyValueVersionEntity version = versionRepository
+                .findTopByKeyAndCreatedAtLessThanEqualOrderByCreatedAtDesc(key, dateTime)
+                .orElseThrow(() -> new NotFoundException("No version found for key: " + key + " at timestamp: " + timestamp));
+        return new KeyValueRecord(version.getKey(), version.getVersion(), parseValue(version.getValue()));
+    }
+
+    @Override
+    public List<KeyValueRecord> getAllRecords() {
+        return repository.findAll().stream()
+                .map(e -> new KeyValueRecord(e.getKey(), parseValue(e.getValue())))
+                .toList();
+    }
+
+    private JsonNode parseValue(String value) {
+        try {
+            return objectMapper.readTree(value);
+        } catch (JsonProcessingException e) {
+            return objectMapper.valueToTree(value);
+        }
     }
 }

@@ -1,0 +1,19 @@
+meta {
+  name: Get by Key
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/object/:key?ts={{$timestamp}}
+  body: none
+  auth: none
+}
+
+params:query {
+  ts: {{$timestamp}}
+}
+
+params:path {
+  key: mykeynestedjson
+}
