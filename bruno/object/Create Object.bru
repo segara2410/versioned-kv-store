@@ -1,0 +1,25 @@
+meta {
+  name: Create Object
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/object
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "mykeynestedjson": {
+      "value": {
+        "string_child": "string",
+        "number_child": 1.23,
+        "child": {
+          "grand_child": "nested"
+        }
+      }
+    }
+  }
+}

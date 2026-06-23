@@ -1,5 +1,8 @@
 package com.versionedkv.store.kv.api;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.versionedkv.store.kv.dto.KeyValueRecord;
 import com.versionedkv.store.kv.service.KeyValueService;
 import com.versionedkv.store.shared.api.GlobalExceptionHandler;
 import com.versionedkv.store.shared.api.NotFoundException;
@@ -12,6 +15,8 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.web.servlet.MockMvc;
+
+import java.util.List;
 
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
@@ -31,6 +36,8 @@ class KeyValueControllerTest {
 
     @MockBean
     private KeyValueService service;
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Test
     void post_validRequest_returns200() throws Exception {
@@ -58,7 +65,8 @@ class KeyValueControllerTest {
 
     @Test
     void getByKey_existing_returns200AndValue() throws Exception {
-        given(service.getByKey("mykey")).willReturn("value1");
+        JsonNode valueNode = objectMapper.valueToTree("value1");
+        given(service.getByKey("mykey")).willReturn(valueNode);
 
         mvc.perform(get("/object/mykey"))
                 .andExpect(status().isOk())
@@ -76,5 +84,37 @@ class KeyValueControllerTest {
                 .andExpect(jsonPath("$.code").value("NOT_FOUND"))
                 .andExpect(jsonPath("$.message").value("Key not found: missing"))
                 .andExpect(jsonPath("$.data").doesNotExist());
+    }
+
+    @Test
+    void getByKey_withTimestamp_returns200AndValue() throws Exception {
+        JsonNode valueNode = objectMapper.readTree("{\"name\": \"test\"}");
+        KeyValueRecord record = new KeyValueRecord("mykey", 3L, valueNode);
+        given(service.getByKeyAtTimestamp("mykey", 1440568980L)).willReturn(record);
+
+        mvc.perform(get("/object/mykey?ts=1440568980"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("SUCCESS"))
+                .andExpect(jsonPath("$.data.key").value("mykey"))
+                .andExpect(jsonPath("$.data.version").value(3))
+                .andExpect(jsonPath("$.data.value.name").value("test"));
+    }
+
+    @Test
+    void getAllRecords_returns200AndArray() throws Exception {
+        JsonNode value1 = objectMapper.valueToTree("v1");
+        JsonNode value2 = objectMapper.valueToTree(42);
+        given(service.getAllRecords()).willReturn(List.of(
+                new KeyValueRecord("k1", 1L, value1),
+                new KeyValueRecord("k2", 2L, value2)
+        ));
+
+        mvc.perform(get("/object/get_all_records"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("SUCCESS"))
+                .andExpect(jsonPath("$.data[0].key").value("k1"))
+                .andExpect(jsonPath("$.data[0].value").value("v1"))
+                .andExpect(jsonPath("$.data[1].key").value("k2"))
+                .andExpect(jsonPath("$.data[1].value").value(42));
     }
 }

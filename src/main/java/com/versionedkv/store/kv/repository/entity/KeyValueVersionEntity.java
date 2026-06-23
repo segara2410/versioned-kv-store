@@ -29,7 +29,7 @@ public class KeyValueVersionEntity {
     private Long version;
 
     @CreationTimestamp
-    @Column(nullable = false, updatable = false)
+    @Column(nullable = false, updatable = false, columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
     private LocalDateTime createdAt;
 
     public KeyValueVersionEntity(String key, String value, Long version) {

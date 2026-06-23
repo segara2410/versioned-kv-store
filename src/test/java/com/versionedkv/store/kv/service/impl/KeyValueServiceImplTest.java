@@ -2,6 +2,7 @@ package com.versionedkv.store.kv.service.impl;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.versionedkv.store.kv.dto.KeyValueRecord;
 import com.versionedkv.store.kv.repository.entity.KeyValueEntity;
 import com.versionedkv.store.kv.repository.entity.KeyValueVersionEntity;
 import com.versionedkv.store.kv.repository.KeyValueRepository;
@@ -99,13 +100,39 @@ class KeyValueServiceImplTest {
     }
 
     @Test
+    void create_jsonObjectValue_savesAsJsonString() throws Exception {
+        JsonNode body = objectMapper.readTree("{\"mykey\": {\"name\": \"test\", \"age\": 30}}");
+        doNothing().when(repository).batchUpsert(anyList(), anyList());
+        KeyValueEntity entity = new KeyValueEntity("mykey", "{\"name\":\"test\",\"age\":30}");
+        entity.setVersion(1L);
+        when(repository.findByKeyIn(List.of("mykey"))).thenReturn(List.of(entity));
+
+        service.create(body);
+
+        verify(versionRepository).saveAll(versionListCaptor.capture());
+        List<KeyValueVersionEntity> versions = versionListCaptor.getValue();
+        assertThat(versions).hasSize(1);
+        assertThat(versions.get(0).getValue()).isEqualTo("{\"name\":\"test\",\"age\":30}");
+    }
+
+    @Test
     void getByKey_found_returnsValue() {
         KeyValueEntity entity = new KeyValueEntity("mykey", "value1");
         when(repository.findByKey("mykey")).thenReturn(Optional.of(entity));
 
-        String actual = service.getByKey("mykey");
+        JsonNode actual = service.getByKey("mykey");
 
-        assertThat(actual).isEqualTo("value1");
+        assertThat(actual.asText()).isEqualTo("value1");
+    }
+
+    @Test
+    void getByKey_foundJsonObject_parsesCorrectly() {
+        KeyValueEntity entity = new KeyValueEntity("mykey", "{\"name\":\"test\"}");
+        when(repository.findByKey("mykey")).thenReturn(Optional.of(entity));
+
+        JsonNode actual = service.getByKey("mykey");
+
+        assertThat(actual.get("name").asText()).isEqualTo("test");
     }
 
     @Test
@@ -115,5 +142,58 @@ class KeyValueServiceImplTest {
         assertThatThrownBy(() -> service.getByKey("missing"))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("missing");
+    }
+
+    @Test
+    void getByKeyAtTimestamp_found_returnsVersionValue() {
+        KeyValueVersionEntity version = new KeyValueVersionEntity("mykey", "oldvalue", 1L);
+        when(versionRepository.findTopByKeyAndCreatedAtLessThanEqualOrderByCreatedAtDesc(
+                org.mockito.ArgumentMatchers.eq("mykey"),
+                org.mockito.ArgumentMatchers.any())).thenReturn(Optional.of(version));
+
+        KeyValueRecord actual = service.getByKeyAtTimestamp("mykey", 1440568980L);
+
+        assertThat(actual.key()).isEqualTo("mykey");
+        assertThat(actual.version()).isEqualTo(1L);
+        assertThat(actual.value().asText()).isEqualTo("oldvalue");
+    }
+
+    @Test
+    void getByKeyAtTimestamp_notFound_throwsNotFoundException() {
+        when(versionRepository.findTopByKeyAndCreatedAtLessThanEqualOrderByCreatedAtDesc(
+                org.mockito.ArgumentMatchers.eq("mykey"),
+                org.mockito.ArgumentMatchers.any())).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.getByKeyAtTimestamp("mykey", 1440568980L))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("No version found");
+    }
+
+    @Test
+    void getAllRecords_returnsAllRecords() {
+        KeyValueEntity e1 = new KeyValueEntity("key1", "val1");
+        e1.setVersion(1L);
+        KeyValueEntity e2 = new KeyValueEntity("key2", "{\"nested\":true}");
+        e2.setVersion(2L);
+        when(repository.findAll()).thenReturn(List.of(e1, e2));
+
+        List<KeyValueRecord> actual = service.getAllRecords();
+
+        assertThat(actual).hasSize(2);
+        assertThat(actual.get(0).key()).isEqualTo("key1");
+        assertThat(actual.get(0).version()).isNull();
+        assertThat(actual.get(0).value().asText()).isEqualTo("val1");
+        assertThat(actual.get(1).key()).isEqualTo("key2");
+        assertThat(actual.get(1).version()).isNull();
+        assertThat(actual.get(1).value().get("nested").asBoolean()).isTrue();
+    }
+
+    @Test
+    void getAllRecords_empty_returnsEmptyList() {
+        when(repository.findAll()).thenReturn(List.of());
+
+        List<KeyValueRecord> actual = service.getAllRecords();
+
+        assertThat(actual).isEmpty();
     }
 }
