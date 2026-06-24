@@ -15,8 +15,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -71,9 +69,9 @@ public class KeyValueServiceImpl implements KeyValueService {
 
     @Override
     public KeyValueRecord getByKeyAtTimestamp(String key, long timestamp) {
-        LocalDateTime dateTime = LocalDateTime.ofInstant(Instant.ofEpochSecond(timestamp), ZoneId.systemDefault());
+        Instant instant = Instant.ofEpochSecond(timestamp);
         KeyValueVersionEntity version = versionRepository
-                .findTopByKeyAndCreatedAtLessThanEqualOrderByCreatedAtDesc(key, dateTime)
+                .findTopByKeyAndCreatedAtLessThanEqualOrderByCreatedAtDesc(key, instant)
                 .orElseThrow(() -> new NotFoundException("No version found for key: " + key + " at timestamp: " + timestamp));
         return new KeyValueRecord(version.getKey(), version.getVersion(), parseValue(version.getValue()));
     }
