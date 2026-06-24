@@ -30,7 +30,7 @@ public class KeyValueController {
     @GetMapping("/{key}")
     public ResponseEntity<ApiResponse<?>> getByKey(
             @PathVariable String key,
-            @RequestParam(name = "ts", required = false) Long timestamp) {
+            @RequestParam(name = "timestamp", required = false) Long timestamp) {
         if (timestamp != null) {
             KeyValueRecord record = service.getByKeyAtTimestamp(key, timestamp);
             return ResponseEntity.ok(ApiResponse.success(record));

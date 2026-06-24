@@ -6,6 +6,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Check out source
         uses: actions/checkout@v7
@@ -17,8 +19,31 @@ jobs:
           java-version: '21'
           cache: maven
 
-      - name: Build & test
+      - name: Build & test with coverage
         run: mvn -B verify
+
+      - name: Coverage summary
+        run: |
+          JACOCO_XML="target/site/jacoco/jacoco.xml"
+          LINE=$(grep -oE '<counter type="LINE" missed="[0-9]+" covered="[0-9]+"' "$JACOCO_XML" | tail -1)
+          MISSED=$(echo "$LINE" | grep -oE 'missed="[0-9]+"' | grep -oE '[0-9]+')
+          COVERED=$(echo "$LINE" | grep -oE 'covered="[0-9]+"' | grep -oE '[0-9]+')
+          TOTAL=$((MISSED + COVERED))
+          PERCENT=$(awk "BEGIN {printf \"%.2f\", ($COVERED/$TOTAL)*100}")
+          echo "## JaCoCo Code Coverage" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Metric | Value |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| --- | --- |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Line coverage | **$PERCENT%** |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Covered lines | $COVERED |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Missed lines | $MISSED |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Total lines | $TOTAL |" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-report
+          path: target/site/jacoco/
+          if-no-files-found: error
 
   docker:
     runs-on: ubuntu-latest

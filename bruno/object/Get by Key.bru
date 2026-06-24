@@ -5,13 +5,13 @@ meta {
 }
 
 get {
-  url: {{baseUrl}}/object/:key?ts={{$timestamp}}
+  url: {{baseUrl}}/object/:key?timestamp={{$timestamp}}
   body: none
   auth: none
 }
 
 params:query {
-  ts: {{$timestamp}}
+  timestamp: {{$timestamp}}
 }
 
 params:path {

@@ -1,5 +1,6 @@
 package com.versionedkv.store.kv.service.impl;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.versionedkv.store.kv.dto.KeyValueRecord;
@@ -42,6 +43,15 @@ class KeyValueServiceImplTest {
 
     @Captor
     private ArgumentCaptor<List<KeyValueVersionEntity>> versionListCaptor;
+
+    @Test
+    void create_emptyBody_throwsIllegalArgumentException() throws Exception {
+        JsonNode body = objectMapper.readTree("{}");
+
+        assertThatThrownBy(() -> service.create(body))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("at least one key-value pair");
+    }
 
     @Test
     void create_newKey_savesWithVersion1() throws Exception {
@@ -97,6 +107,16 @@ class KeyValueServiceImplTest {
         assertThat(versions).hasSize(1);
         assertThat(versions.get(0).getVersion()).isEqualTo(2L);
         assertThat(versions.get(0).getValue()).isEqualTo("newvalue");
+    }
+
+    @Test
+    void create_jsonObjectValueSerializationFails_throwsIllegalArgumentException() throws Exception {
+        JsonNode body = objectMapper.readTree("{\"mykey\": {\"name\": \"test\"}}");
+        doThrow(new JsonProcessingException("fail") {}).when(objectMapper).writeValueAsString(any());
+
+        assertThatThrownBy(() -> service.create(body))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Failed to serialize value for key: mykey");
     }
 
     @Test

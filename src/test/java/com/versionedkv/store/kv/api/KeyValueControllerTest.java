@@ -92,12 +92,23 @@ class KeyValueControllerTest {
         KeyValueRecord record = new KeyValueRecord("mykey", 3L, valueNode);
         given(service.getByKeyAtTimestamp("mykey", 1440568980L)).willReturn(record);
 
-        mvc.perform(get("/object/mykey?ts=1440568980"))
+        mvc.perform(get("/object/mykey?timestamp=1440568980"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value("SUCCESS"))
                 .andExpect(jsonPath("$.data.key").value("mykey"))
                 .andExpect(jsonPath("$.data.version").value(3))
                 .andExpect(jsonPath("$.data.value.name").value("test"));
+    }
+
+    @Test
+    void getByKey_unexpectedException_returns500() throws Exception {
+        given(service.getByKey("mykey")).willThrow(new RuntimeException("boom"));
+
+        mvc.perform(get("/object/mykey"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.code").value("ERROR"))
+                .andExpect(jsonPath("$.message").value("An unexpected error occurred"))
+                .andExpect(jsonPath("$.data").doesNotExist());
     }
 
     @Test
