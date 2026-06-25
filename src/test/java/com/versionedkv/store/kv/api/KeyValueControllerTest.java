@@ -66,13 +66,14 @@ class KeyValueControllerTest {
     @Test
     void getByKey_existing_returns200AndValue() throws Exception {
         JsonNode valueNode = objectMapper.valueToTree("value1");
-        given(service.getByKey("mykey")).willReturn(valueNode);
+        given(service.getByKey("mykey")).willReturn(new KeyValueRecord("mykey", valueNode));
 
         mvc.perform(get("/object/mykey"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value("SUCCESS"))
                 .andExpect(jsonPath("$.message").value("success"))
-                .andExpect(jsonPath("$.data").value("value1"));
+                .andExpect(jsonPath("$.data.key").value("mykey"))
+                .andExpect(jsonPath("$.data.value").value("value1"));
     }
 
     @Test

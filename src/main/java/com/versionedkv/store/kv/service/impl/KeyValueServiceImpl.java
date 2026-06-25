@@ -61,10 +61,10 @@ public class KeyValueServiceImpl implements KeyValueService {
     }
 
     @Override
-    public JsonNode getByKey(String key) {
+    public KeyValueRecord getByKey(String key) {
         KeyValueEntity entity = repository.findByKey(key)
                 .orElseThrow(() -> new NotFoundException("Key not found: " + key));
-        return parseValue(entity.getValue());
+        return new KeyValueRecord(entity.getKey(), parseValue(entity.getValue()));
     }
 
     @Override

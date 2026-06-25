@@ -28,15 +28,11 @@ public class KeyValueController {
     }
 
     @GetMapping("/{key}")
-    public ResponseEntity<ApiResponse<?>> getByKey(
+    public ResponseEntity<ApiResponse<KeyValueRecord>> getByKey(
             @PathVariable String key,
             @RequestParam(name = "timestamp", required = false) Long timestamp) {
-        if (timestamp != null) {
-            KeyValueRecord record = service.getByKeyAtTimestamp(key, timestamp);
-            return ResponseEntity.ok(ApiResponse.success(record));
-        }
-        JsonNode value = service.getByKey(key);
-        return ResponseEntity.ok(ApiResponse.success(value));
+        KeyValueRecord record = timestamp != null ? service.getByKeyAtTimestamp(key, timestamp) : service.getByKey(key);
+        return ResponseEntity.ok(ApiResponse.success(record));
     }
 
     @GetMapping("/get_all_records")
