@@ -9,7 +9,7 @@ public interface KeyValueService {
 
     void create(JsonNode body);
 
-    JsonNode getByKey(String key);
+    KeyValueRecord getByKey(String key);
 
     KeyValueRecord getByKeyAtTimestamp(String key, long timestamp);
 

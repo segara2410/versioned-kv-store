@@ -140,9 +140,10 @@ class KeyValueServiceImplTest {
         KeyValueEntity entity = new KeyValueEntity("mykey", "value1");
         when(repository.findByKey("mykey")).thenReturn(Optional.of(entity));
 
-        JsonNode actual = service.getByKey("mykey");
+        KeyValueRecord actual = service.getByKey("mykey");
 
-        assertThat(actual.asText()).isEqualTo("value1");
+        assertThat(actual.key()).isEqualTo("mykey");
+        assertThat(actual.value().asText()).isEqualTo("value1");
     }
 
     @Test
@@ -150,9 +151,10 @@ class KeyValueServiceImplTest {
         KeyValueEntity entity = new KeyValueEntity("mykey", "{\"name\":\"test\"}");
         when(repository.findByKey("mykey")).thenReturn(Optional.of(entity));
 
-        JsonNode actual = service.getByKey("mykey");
+        KeyValueRecord actual = service.getByKey("mykey");
 
-        assertThat(actual.get("name").asText()).isEqualTo("test");
+        assertThat(actual.key()).isEqualTo("mykey");
+        assertThat(actual.value().get("name").asText()).isEqualTo("test");
     }
 
     @Test
