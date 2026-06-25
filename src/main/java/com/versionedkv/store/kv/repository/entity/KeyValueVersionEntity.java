@@ -8,9 +8,15 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.time.Instant;
 
 @Entity
-@Table(name = "key_value_versions", uniqueConstraints = {
-    @UniqueConstraint(name = "uni_kv_versions_key_version", columnNames = {"key", "version"})
-})
+@Table(
+    name = "key_value_versions",
+    uniqueConstraints = {
+        @UniqueConstraint(name = "uni_kv_versions_key_version", columnNames = {"key", "version"})
+    },
+    indexes = {
+        @Index(name = "idx_kv_versions_key_created_at", columnList = "key, created_at DESC")
+    }
+)
 @Data
 @NoArgsConstructor
 public class KeyValueVersionEntity {
